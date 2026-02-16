@@ -2,7 +2,7 @@
 
 一个用于生成 Valorant Champions Tour (VCT) 赛事日程图的桌面应用程序。支持手动编辑和从 VLR.gg 自动导入赛程，可导出为高清竖向长图。
 
-![App Screenshot](icon.jpg)
+<img src="assets/screenshot/scr.png" width="50%" alt="App Screenshot">
 
 ## 主要功能
 
