@@ -20,19 +20,20 @@ if errorlevel 1 (
 )
 
 :: 检查icon.ico
-if not exist "icon.ico" (
-    echo [提示] 正在生成 icon.ico...
-    .venv\Scripts\python.exe -c "from PIL import Image; img = Image.open('icon.jpg'); img.save('icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
-)
+if exist "icon.ico" del /f "icon.ico"
+echo [提示] 正在生成 icon.ico...
+.venv\Scripts\python.exe -c "from PIL import Image; img = Image.open('icon.jpg'); img.save('icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
 
 :: 清理旧文件
 echo [1/3] 清理旧的编译文件...
 if exist "dist\VCT_Display.exe" del /f "dist\VCT_Display.exe"
 if exist "build" rmdir /s /q "build"
+if exist "__pycache__" rmdir /s /q "__pycache__"
+if exist "*.spec" del /f "*.spec"
 
-:: 编译
+:: 编译 (添加 --clean 参数清理缓存)
 echo [2/3] 正在编译，请稍候...
-.venv\Scripts\pyinstaller.exe --onefile --windowed --icon=icon.ico --name="VCT_Display" --add-data="assets;assets" --add-data="icon.jpg;." main.py
+.venv\Scripts\pyinstaller.exe --clean --onefile --windowed --icon=icon.ico --name="VCT_Display" --add-data="assets;assets" --add-data="icon.jpg;." main.py
 
 :: 检查结果
 echo.
