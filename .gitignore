@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec
+*.manifest
+
+# Application Data
+matches.json
+settings.json
+build_log.txt
+
+# VS Code
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
