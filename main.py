@@ -113,7 +113,7 @@ class MainWindow(QMainWindow):
              # Fallback if file not found locally (e.g. in some frozen environments)
             content = "MIT License\n(License file not found)"
 
-        disclaimer = "\n---\n本软件使用的图标、图片等素材版权归 Riot Games 或相关赛事方所有。\n本软件仅供学习交流使用，不得用于商业用途。"
+        disclaimer = "---\n本软件使用的图标、图片等素材版权归 Riot Games 或相关赛事方所有。\n本软件仅供学习交流使用，不得用于商业用途。"
         QMessageBox.information(self, "许可证", content + disclaimer)
 
 
