@@ -16,13 +16,26 @@ class MatchCard(QFrame):
     card_deleted = pyqtSignal(int)  # Emits card index for deletion
     card_copy = pyqtSignal(int)  # Emits card index for copy
     
-    def __init__(self, match_data, card_index, cn_font_family, en_font_family, region_colors, parent=None):
+    def __init__(self, match_data, card_index, cn_font_family, en_font_family, region_colors, parent=None, scale_factor=1.0):
         super().__init__(parent)
         self.cn_font_family = cn_font_family
         self.en_font_family = en_font_family
         self.card_index = card_index
         self.match_data = match_data
         self.selected = False
+        self.scale_factor = scale_factor
+        
+        # Scale dimensions
+        sf = scale_factor
+        font_size = int(12 * sf)
+        remarks_font_size = int(10 * sf)
+        icon_size = int(24 * sf)
+        team_icon_size = int(32 * sf)
+        margin_h = int(10 * sf)
+        margin_v = int(8 * sf)
+        spacing = int(6 * sf)
+        match_height = int(40 * sf)
+        vs_width = int(40 * sf)
         
         # Enable context menu
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -33,7 +46,7 @@ class MatchCard(QFrame):
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         
         # Set fixed height to prevent stretching
-        self.setFixedHeight(100)
+        self.setFixedHeight(int(100 * sf))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         # Parse data: [date, time, tournament, match_info, remarks]
@@ -76,16 +89,16 @@ class MatchCard(QFrame):
         
         # Main layout
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(margin_h, margin_v, margin_h, margin_v)
+        layout.setSpacing(spacing)
         
         # Fonts - English for team names/tournament, Chinese for date/time/remarks
-        en_font = QFont(en_font_family, 12, QFont.Weight.Bold)
-        cn_font = QFont(cn_font_family, 12, QFont.Weight.Bold)
+        en_font = QFont(en_font_family, font_size, QFont.Weight.Bold)
+        cn_font = QFont(cn_font_family, font_size, QFont.Weight.Bold)
         
         # Top row: Date | Time | Tournament
         top_layout = QHBoxLayout()
-        top_layout.setSpacing(10)
+        top_layout.setSpacing(int(10 * sf))
         
         # Date
         date_label = QLabel(date_val)
@@ -114,12 +127,12 @@ class MatchCard(QFrame):
         tournament_widget.setStyleSheet("background: transparent;")
         tournament_layout = QHBoxLayout(tournament_widget)
         tournament_layout.setContentsMargins(0, 0, 0, 0)
-        tournament_layout.setSpacing(4)
+        tournament_layout.setSpacing(int(4 * sf))
         
         icon_path = get_tournament_icon_path(tournament_val)
         if icon_path and os.path.exists(icon_path):
             icon_label = QLabel()
-            pixmap = QPixmap(icon_path).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = QPixmap(icon_path).scaled(icon_size, icon_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icon_label.setPixmap(pixmap)
             icon_label.setStyleSheet("background: transparent;")
             tournament_layout.addWidget(icon_label)
@@ -135,7 +148,7 @@ class MatchCard(QFrame):
         # Middle row: Team A vs Team B with icons - use fixed positions
         match_widget = QWidget()
         match_widget.setStyleSheet("background: transparent;")
-        match_widget.setFixedHeight(40)
+        match_widget.setFixedHeight(match_height)
         match_layout = QHBoxLayout(match_widget)
         match_layout.setContentsMargins(0, 0, 0, 0)
         match_layout.setSpacing(0)
@@ -145,13 +158,13 @@ class MatchCard(QFrame):
         team_a_widget.setStyleSheet("background: transparent;")
         team_a_layout = QHBoxLayout(team_a_widget)
         team_a_layout.setContentsMargins(0, 0, 0, 0)
-        team_a_layout.setSpacing(4)
+        team_a_layout.setSpacing(int(4 * sf))
         
         icon_path_a = get_team_icon_path(team_a)
         if icon_path_a and os.path.exists(icon_path_a):
             icon_label_a = QLabel()
-            icon_label_a.setFixedSize(32, 32)
-            pixmap_a = QPixmap(icon_path_a).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            icon_label_a.setFixedSize(team_icon_size, team_icon_size)
+            pixmap_a = QPixmap(icon_path_a).scaled(team_icon_size, team_icon_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icon_label_a.setPixmap(pixmap_a)
             icon_label_a.setStyleSheet("background: transparent;")
             team_a_layout.addWidget(icon_label_a)
@@ -169,7 +182,7 @@ class MatchCard(QFrame):
         vs_label.setFont(en_font)
         vs_label.setStyleSheet(f"color: {color_name}; background: transparent;")
         vs_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vs_label.setFixedWidth(40)
+        vs_label.setFixedWidth(vs_width)
         match_layout.addWidget(vs_label, 0)
         
         # Team B (name + icon) - right aligned
@@ -177,7 +190,7 @@ class MatchCard(QFrame):
         team_b_widget.setStyleSheet("background: transparent;")
         team_b_layout = QHBoxLayout(team_b_widget)
         team_b_layout.setContentsMargins(0, 0, 0, 0)
-        team_b_layout.setSpacing(4)
+        team_b_layout.setSpacing(int(4 * sf))
         
         team_b_layout.addStretch()
         
@@ -189,8 +202,8 @@ class MatchCard(QFrame):
         icon_path_b = get_team_icon_path(team_b)
         if icon_path_b and os.path.exists(icon_path_b):
             icon_label_b = QLabel()
-            icon_label_b.setFixedSize(32, 32)
-            pixmap_b = QPixmap(icon_path_b).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            icon_label_b.setFixedSize(team_icon_size, team_icon_size)
+            pixmap_b = QPixmap(icon_path_b).scaled(team_icon_size, team_icon_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icon_label_b.setPixmap(pixmap_b)
             icon_label_b.setStyleSheet("background: transparent;")
             team_b_layout.addWidget(icon_label_b)
@@ -201,7 +214,7 @@ class MatchCard(QFrame):
         # Bottom row: Remarks (if any)
         if remarks_val.strip():
             remarks_label = QLabel(remarks_val)
-            remarks_label.setFont(QFont(cn_font_family, 10, QFont.Weight.Bold))
+            remarks_label.setFont(QFont(cn_font_family, remarks_font_size, QFont.Weight.Bold))
             remarks_label.setStyleSheet("color: #666666; background: transparent;")
             remarks_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(remarks_label)
@@ -219,17 +232,22 @@ class MatchCard(QFrame):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        
+        sf = self.scale_factor
+        border_adj = int(2 * sf)
+        corner_radius = int(8 * sf)
         
         # Draw rounded rect background with white base
-        rect = self.rect().adjusted(2, 2, -2, -2)
+        rect = self.rect().adjusted(border_adj, border_adj, -border_adj, -border_adj)
         
         # Create rounded rect path for clipping
         clip_path = QPainterPath()
-        clip_path.addRoundedRect(rect.x(), rect.y(), rect.width(), rect.height(), 8, 8)
+        clip_path.addRoundedRect(rect.x(), rect.y(), rect.width(), rect.height(), corner_radius, corner_radius)
         
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(255, 255, 255))
-        painter.drawRoundedRect(rect, 8, 8)
+        painter.drawRoundedRect(rect, corner_radius, corner_radius)
         
         # Draw background image with 30% opacity if exists
         if self.background_path and os.path.exists(self.background_path):
@@ -249,13 +267,13 @@ class MatchCard(QFrame):
         if self.selected:
             # Selected state - thicker blue border
             pen = QPen(QColor("#0ea5e9"))
-            pen.setWidth(4)
+            pen.setWidth(int(4 * sf))
         else:
             pen = QPen(QColor(self.border_color))
-            pen.setWidth(2)
+            pen.setWidth(int(2 * sf))
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(rect, 8, 8)
+        painter.drawRoundedRect(rect, corner_radius, corner_radius)
         
         painter.end()
     

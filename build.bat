@@ -33,7 +33,7 @@ if exist "*.spec" del /f "*.spec"
 
 :: 编译 (添加 --clean 参数清理缓存)
 echo [2/3] 正在编译，请稍候...
-.venv\Scripts\pyinstaller.exe --clean --onefile --windowed --icon=icon.ico --name="VCT_Display" --add-data="assets;assets" --add-data="icon.jpg;." main.py
+.venv\Scripts\pyinstaller.exe --clean --onefile --windowed --icon=icon.ico --name="VCT_Display" --add-data="assets;assets" --add-data="icon.jpg;." --add-data="LICENSE;." main.py
 
 :: 检查结果
 echo.

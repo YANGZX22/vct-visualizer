@@ -191,45 +191,62 @@ class PreviewWidget(QWidget):
             QMessageBox.information(self, "成功", f"已导入 {len(matches)} 场比赛")
     
     def export_image(self):
-        """导出为竖向1080px宽图片"""
+        """导出为竖向长图片，支持多种分辨率"""
         if not self.data:
             QMessageBox.warning(self, "提示", "没有比赛数据可导出")
             return
         
+        # Ask for resolution
+        resolutions = ["960px (标清)", "1080px (高清)", "1920px (全高清)", "2880px (2K)"]
+        resolution_values = [960, 1080, 1920, 2880]
+        
+        from PyQt6.QtWidgets import QInputDialog
+        choice, ok = QInputDialog.getItem(self, "选择分辨率", "导出宽度:", resolutions, 1, False)
+        if not ok:
+            return
+        
+        # Get selected width
+        selected_idx = resolutions.index(choice)
+        EXPORT_WIDTH = resolution_values[selected_idx]
+        
         # Ask for save path
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "保存图片", "schedule.png",
+            self, "保存图片", f"schedule_{EXPORT_WIDTH}p.png",
             "图片文件 (*.png);;JPEG文件 (*.jpg)"
         )
         if not file_path:
             return
         
-        # Constants for export
-        EXPORT_WIDTH = 1080
-        CARD_WIDTH = 480  # Each card width
-        CARD_HEIGHT = 100
-        CARD_SPACING = 10
-        MARGIN = 55  # Side margins ((1080 - 480*2 - 10) / 2 = 55)
-        TOP_MARGIN = 40
-        BOTTOM_MARGIN = 40
+        # Base dimensions at 1080p (scale factor relative to this)
+        BASE_WIDTH = 1080
+        scale = EXPORT_WIDTH / BASE_WIDTH
+        
+        # Scaled constants for export
+        CARD_WIDTH = int(480 * scale)
+        CARD_HEIGHT = int(100 * scale)
+        CARD_SPACING = int(10 * scale)
+        MARGIN = int(55 * scale)
+        TOP_MARGIN = int(40 * scale)
+        BOTTOM_MARGIN = int(40 * scale)
         
         # Calculate number of rows (2 cards per row)
         num_rows = (len(self.data) + 1) // 2
         content_height = TOP_MARGIN + num_rows * (CARD_HEIGHT + CARD_SPACING) - CARD_SPACING + BOTTOM_MARGIN
         
-        # Create the final image
+        # Create the final image with high DPI
         final_image = QImage(EXPORT_WIDTH, content_height, QImage.Format.Format_ARGB32)
         final_image.fill(QColor(255, 255, 255))  # White fallback
         
         painter = QPainter(final_image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         
         # Draw background (repeat if too short, clip if too long)
         if self.background_path and os.path.exists(self.background_path):
             bg_pixmap = QPixmap(self.background_path)
             if not bg_pixmap.isNull():
-                # Scale to width 1080, keeping aspect ratio
+                # Scale to export width, keeping aspect ratio
                 scaled_bg = bg_pixmap.scaledToWidth(EXPORT_WIDTH, Qt.TransformationMode.SmoothTransformation)
                 bg_height = scaled_bg.height()
                 
@@ -239,10 +256,10 @@ class PreviewWidget(QWidget):
                     painter.drawPixmap(0, y, scaled_bg)
                     y += bg_height
         
-        # Render each card
+        # Render each card at higher resolution
         for idx, row_data in enumerate(self.data):
-            # Create a temporary card widget
-            card = MatchCard(row_data, idx, self.cn_font_family, self.en_font_family, self.region_colors)
+            # Create a temporary card widget with scaled size
+            card = MatchCard(row_data, idx, self.cn_font_family, self.en_font_family, self.region_colors, scale_factor=scale)
             card.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
             
             # Calculate position in grid
@@ -251,7 +268,7 @@ class PreviewWidget(QWidget):
             x = MARGIN + col * (CARD_WIDTH + CARD_SPACING)
             y = TOP_MARGIN + row * (CARD_HEIGHT + CARD_SPACING)
             
-            # Render card to pixmap
+            # Render card to pixmap at higher resolution
             card_pixmap = QPixmap(card.size())
             card_pixmap.fill(Qt.GlobalColor.transparent)
             card.render(card_pixmap)
@@ -266,7 +283,7 @@ class PreviewWidget(QWidget):
         
         # Save the image
         if final_image.save(file_path):
-            QMessageBox.information(self, "成功", f"图片已保存到:\n{file_path}")
+            QMessageBox.information(self, "成功", f"图片已保存到:\n{file_path}\n分辨率: {EXPORT_WIDTH}x{content_height}")
         else:
             QMessageBox.warning(self, "失败", "图片保存失败")
 
