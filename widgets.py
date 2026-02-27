@@ -2,12 +2,56 @@
 Custom widgets for VCT Display Demo
 """
 import os
-from PyQt6.QtWidgets import QSpinBox, QWidget, QVBoxLayout, QLabel, QComboBox, QInputDialog, QMessageBox
+from PyQt6.QtWidgets import (QSpinBox, QWidget, QVBoxLayout, QLabel, QComboBox,
+                             QInputDialog, QMessageBox, QScrollArea, QListWidget,
+                             QAbstractItemView)
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QIcon
 
 from config import TEAMS_BY_REGION
 from utils import get_tournament_icon_path, get_team_icon_path
+
+
+class _SmoothScrollMixin:
+    """Mixin for low-latency per-pixel wheel scrolling."""
+    def _init_smooth_scroll(self):
+        self._smooth_step = 48
+        self._angle_remainder = 0.0
+
+    def wheelEvent(self, event):
+        bar = self.verticalScrollBar()
+        pixel_delta = event.pixelDelta().y()
+
+        if pixel_delta:
+            delta = -pixel_delta
+        else:
+            angle_delta = event.angleDelta().y()
+            if angle_delta == 0:
+                event.ignore()
+                return
+            steps = (angle_delta / 120.0)
+            raw_delta = -(steps * self._smooth_step) + self._angle_remainder
+            delta = int(raw_delta)
+            self._angle_remainder = raw_delta - delta
+
+        if delta != 0:
+            bar.setValue(bar.value() + delta)
+        event.accept()
+
+
+class SmoothScrollArea(QScrollArea, _SmoothScrollMixin):
+    """QScrollArea with animated smooth wheel scrolling."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._init_smooth_scroll()
+
+
+class SmoothScrollListWidget(QListWidget, _SmoothScrollMixin):
+    """QListWidget with animated smooth wheel scrolling."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self._init_smooth_scroll()
 
 
 class TwoDigitSpinBox(QSpinBox):

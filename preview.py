@@ -4,7 +4,7 @@ Preview widget for VCT Display Demo
 import os
 import json
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QScrollArea, QGridLayout, QMessageBox,
+                             QPushButton, QGridLayout, QMessageBox,
                              QFileDialog)
 from PyQt6.QtCore import Qt, QDate, QRect
 from PyQt6.QtGui import QFont, QColor, QShortcut, QKeySequence, QPixmap, QPainter, QImage
@@ -12,6 +12,7 @@ from PyQt6.QtGui import QFont, QColor, QShortcut, QKeySequence, QPixmap, QPainte
 from cards import MatchCard
 from dialogs import MatchEditDialog
 from api_import import show_vlr_import_dialog
+from widgets import SmoothScrollArea
 
 
 class BackgroundContainer(QWidget):
@@ -19,6 +20,8 @@ class BackgroundContainer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.background_pixmap = None
+        self._cached_scaled_bg = None
+        self._cached_bg_width = -1
     
     def set_background(self, path):
         """Set the background image from path"""
@@ -26,26 +29,41 @@ class BackgroundContainer(QWidget):
             self.background_pixmap = QPixmap(path)
         else:
             self.background_pixmap = None
+        self._cached_scaled_bg = None
+        self._cached_bg_width = -1
         self.update()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Invalidate cache when container width changes
+        self._cached_scaled_bg = None
+        self._cached_bg_width = -1
     
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        clip_rect = event.rect()
         
         # Fill with default color first
-        painter.fillRect(self.rect(), QColor("#f5f5f5"))
+        painter.fillRect(clip_rect, QColor("#f5f5f5"))
         
         # Draw background if set
         if self.background_pixmap and not self.background_pixmap.isNull():
-            # Scale to widget width, keeping aspect ratio
-            scaled_bg = self.background_pixmap.scaledToWidth(
-                self.width(), Qt.TransformationMode.SmoothTransformation
-            )
+            # Cache scaled background to avoid expensive scaling on each repaint
+            if self._cached_scaled_bg is None or self._cached_bg_width != self.width():
+                self._cached_scaled_bg = self.background_pixmap.scaledToWidth(
+                    self.width(), Qt.TransformationMode.SmoothTransformation
+                )
+                self._cached_bg_width = self.width()
+
+            scaled_bg = self._cached_scaled_bg
             bg_height = scaled_bg.height()
             
-            # Tile vertically if needed
-            y = 0
-            while y < self.height():
+            # Tile only inside exposed paint region
+            start_y = (clip_rect.top() // bg_height) * bg_height
+            end_y = clip_rect.bottom()
+            y = start_y
+            while y <= end_y:
                 painter.drawPixmap(0, y, scaled_bg)
                 y += bg_height
         
@@ -117,7 +135,7 @@ class PreviewWidget(QWidget):
         self.main_layout.addLayout(btn_layout)
         
         # Scroll area for the cards
-        self.scroll_area = QScrollArea()
+        self.scroll_area = SmoothScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setStyleSheet("QScrollArea { border: none; background-color: #f5f5f5; }")

@@ -5,7 +5,7 @@ import urllib.request
 import urllib.error
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QComboBox, QSpinBox, QCheckBox,
                              QProgressBar, QListWidget, QListWidgetItem,
@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
 
 from utils import normalize_team_name
+from widgets import SmoothScrollListWidget
 
 
 # VLR.gg API base URL
@@ -166,7 +167,7 @@ class VLRImportDialog(QDialog):
         layout.addLayout(filter_layout)
         
         # Match list
-        self.match_list = QListWidget()
+        self.match_list = SmoothScrollListWidget()
         self.match_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         layout.addWidget(self.match_list, 1)
         
@@ -254,11 +255,17 @@ class VLRImportDialog(QDialog):
             time_until = match.get('time_until_match', '')
             timestamp = match.get('unix_timestamp', '')
             series = match.get('match_series', '')
+            reliable = self._is_reliable_timestamp(timestamp)
             
             # Format display text
             display = f"{team1} vs {team2}"
             if timestamp:
-                display = f"[{timestamp}] {display}"
+                if reliable:
+                    display = f"[{timestamp}] {display}"
+                else:
+                    # Show date only for unreliable timestamps
+                    date_part = timestamp.split(' ')[0] if ' ' in timestamp else timestamp
+                    display = f"[{date_part} 时间未校准] {display}"
             elif time_until:
                 display = f"[{time_until}] {display}"
             if series:
@@ -266,6 +273,8 @@ class VLRImportDialog(QDialog):
             
             item = QListWidgetItem(display)
             item.setData(Qt.ItemDataRole.UserRole, i)  # Store original index
+            if not reliable and timestamp:
+                item.setForeground(Qt.GlobalColor.darkYellow)
             self.match_list.addItem(item)
         
         self.import_btn.setEnabled(self.match_list.count() > 0)
@@ -310,6 +319,24 @@ class VLRImportDialog(QDialog):
             dt = dt + timedelta(hours=1)
         
         return dt.replace(minute=new_minute, second=0, microsecond=0)
+
+    @staticmethod
+    def _is_reliable_timestamp(timestamp_str):
+        """Check if a unix_timestamp from the API is a real scheduled time.
+        
+        The vlrggapi sometimes returns fake timestamps for matches without
+        confirmed schedules — it just adds a day offset to the server's
+        current time. These can be detected because real scheduled times
+        always have seconds == 0 (e.g. '18:00:00'), while fake ones carry
+        the server's current seconds (e.g. '07:36:36').
+        """
+        if not timestamp_str:
+            return False
+        try:
+            dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            return dt.second == 0 and dt.minute % 15 == 0
+        except Exception:
+            return False
     
     def convert_match(self, match_data):
         """Convert VLR match data to app format [date, time, tournament, match_info, remarks, bo]"""
@@ -328,14 +355,27 @@ class VLRImportDialog(QDialog):
         date_str = ""
         time_str = ""
         
-        # Try unix_timestamp first
-        if timestamp:
+        # Try unix_timestamp first (API returns UTC time)
+        if timestamp and self._is_reliable_timestamp(timestamp):
             try:
                 dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                # Convert from UTC to local timezone
+                dt = dt.replace(tzinfo=timezone.utc).astimezone()
                 # Round to nearest 30 minutes
                 dt = self._round_time(dt)
                 date_str = f"{dt.year}.{dt.month}.{dt.day}"
                 time_str = dt.strftime("%H:%M")
+            except:
+                pass
+        elif timestamp:
+            # Unreliable timestamp — API generated a fake time for unscheduled
+            # matches. We can still use the date part as a rough estimate but
+            # leave time blank so the user fills it in later.
+            try:
+                dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                dt = dt.replace(tzinfo=timezone.utc).astimezone()
+                date_str = f"{dt.year}.{dt.month}.{dt.day}"
+                time_str = ""  # time is unreliable, leave blank
             except:
                 pass
         

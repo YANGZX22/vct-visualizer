@@ -91,6 +91,7 @@ TEAM_NAME_MAPPING = {
     "navi": "navi",
     "movistar koi": "m8",
     "m8": "m8",
+    "gentle mates": "m8",
     "apeks": "apeks",
     "team vitality": "vit",
     "vitality": "vit",
@@ -148,7 +149,7 @@ TEAM_NAME_MAPPING = {
     "tyl": "tyl",
     "wolves esports": "wol",
     "wol": "wol",
-    "xiao long gaming": "xlg",
+    "xi lai gaming": "xlg",
     "xlg": "xlg",
     
     # Others

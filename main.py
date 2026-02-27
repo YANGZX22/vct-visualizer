@@ -3,7 +3,8 @@ VCT Display Demo - Main Application Entry Point
 """
 import sys
 import os
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QMessageBox, QDialog, QTextBrowser, QDialogButtonBox)
 from PyQt6.QtGui import QFontDatabase, QIcon, QAction
 
 from config import FONT_PATH, CN_FONT_PATH
@@ -113,8 +114,42 @@ class MainWindow(QMainWindow):
              # Fallback if file not found locally (e.g. in some frozen environments)
             content = "MIT License\n(License file not found)"
 
-        disclaimer = "---\n本软件使用的图标、图片等素材版权归 Riot Games 或相关赛事方所有。\n本软件仅供学习交流使用，不得用于商业用途。"
-        QMessageBox.information(self, "许可证", content + disclaimer)
+        api_license = (
+            "\n---\n"
+            "vlrggapi (https://github.com/axsddlr/vlrggapi)\n\n"
+            "MIT License\n\n"
+            "Copyright (c) 2021-2024 Andre Saddler\n\n"
+            "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+            "of this software and associated documentation files (the \"Software\"), to deal\n"
+            "in the Software without restriction, including without limitation the rights\n"
+            "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+            "copies of the Software, and to permit persons to whom the Software is\n"
+            "furnished to do so, subject to the following conditions:\n\n"
+            "The above copyright notice and this permission notice shall be included in all\n"
+            "copies or substantial portions of the Software.\n\n"
+            "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+            "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+            "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+            "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+            "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+            "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+            "SOFTWARE.\n"
+        )
+
+        disclaimer = "\n---\n本软件使用的图标、图片等素材版权归 Riot Games 或相关赛事方所有。\n本软件仅供学习交流使用，不得用于商业用途。"
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("许可证")
+        dlg.resize(560, 420)
+        layout = QVBoxLayout(dlg)
+        text = QTextBrowser()
+        text.setOpenExternalLinks(True)
+        text.setPlainText(content + api_license + disclaimer)
+        layout.addWidget(text)
+        btn = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        btn.accepted.connect(dlg.accept)
+        layout.addWidget(btn)
+        dlg.exec()
 
 
 if __name__ == "__main__":
